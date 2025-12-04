@@ -1,23 +1,20 @@
 "use client"
 
-import { StarknetDapp } from "@/components/StarknetDapp"
-import { connectors } from "@/connectors"
-import { mainnet, sepolia } from "@starknet-react/chains"
-import { publicProvider, StarknetConfig } from "@starknet-react/core"
+import { useState } from "react"
+
+import { SidebarNav } from "@/components/SidebarNav"
+import { StarknetApp } from "@/modules/StarknetApp"
 
 export default function Home() {
-  const chains = [mainnet, sepolia]
-  const providers = publicProvider()
+  const [selectedNav, setSelectedNav] = useState("starknet-app")
 
   return (
-    <div className="flex flex-col flex-grow">
-      <StarknetConfig
-        chains={chains}
-        provider={providers}
-        connectors={connectors}
-      >
-        <StarknetDapp />
-      </StarknetConfig>
+    <div className="flex min-h-screen flex-row bg-black">
+      <SidebarNav selectedId={selectedNav} onSelect={setSelectedNav} />
+
+      <main className="flex flex-1 flex-col">
+        <StarknetApp />
+      </main>
     </div>
   )
 }
