@@ -2,16 +2,16 @@ export interface RpcRequest {
   id: string
   method: string
   chainId?: string // Optional chain identifier
-  params?: Record<string, any>
+  params?: Record<string, unknown>
 }
 
 export interface RpcResponse {
   id: string
-  result?: any
+  result?: unknown
   error?: {
     code: number
     message: string
-    data?: any
+    data?: unknown
   }
 }
 
@@ -24,6 +24,7 @@ export interface CallContractParams {
 
 export interface GetBalanceParams {
   address: string
+  contractAddress?: string
   chainId?: string
+  network?: string
 }
-

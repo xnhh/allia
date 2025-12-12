@@ -1,4 +1,3 @@
-import { isMainnet, toHexChainid } from "@/helpers/chainId"
 import { formatTruncatedAddress } from "@/helpers/formatAddress"
 import { useAccount } from "@starknet-react/core"
 import { LogoIcon } from "../../../components/icons/LogoIcon"
@@ -6,15 +5,18 @@ import { WalletIcon } from "../../../components/icons/WalletIcon"
 import { ExternalIcon } from "../../../components/icons/ExternalIcon"
 import { HeaderConnectButton } from "@/modules/starknet/components/HeaderConnectButton"
 import { useBalance } from "@/hooks/useBalance"
+import { useChainContext } from "@/contexts/ChainContext"
+import { STRKTokenAddress } from "@/constants"
 
 const Header = () => {
-  const { address, isConnected, chainId } = useAccount()
+  const { address, isConnected } = useAccount()
+  const { network } = useChainContext()
 
-  const { data: balance } = useBalance(address)
+  const { data: balance } = useBalance(address, {
+    contractAddress: STRKTokenAddress,
+  })
 
   // const { data } = useStarkProfile({ address })
-
-  const hexChainId = toHexChainid(chainId)
 
   return (
     <>
@@ -37,16 +39,16 @@ const Header = () => {
                   <WalletIcon />
                   {balance
                     ? balance?.formatted.length > 7
-                      ? `${balance.formatted.slice(0, 7)} ETH`
-                      : `${balance?.formatted} ETH`
-                    : "0 ETH"}
+                      ? `${balance.formatted.slice(0, 7)} STRK`
+                      : `${balance?.formatted} STRK`
+                    : "0 STRK"}
                 </div>
                 <div className="border-solid border-l-[1px] border-charcoal -my-1 mx-0  hidden md:flex" />
                 <div
                   className="flex cursor-pointer items-center gap-2"
                   onClick={() =>
                     window.open(
-                      isMainnet(hexChainId)
+                      network === "mainnet"
                         ? `https://voyager.online/contract/${address}`
                         : `https://sepolia.voyager.online/contract/${address}`,
                       "_blank",

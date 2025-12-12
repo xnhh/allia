@@ -1,5 +1,4 @@
 import { wsClient } from "./websocket"
-import { CallContractParams, GetBalanceParams } from "./websocket.types"
 import { constants } from "starknet"
 
 export interface RpcRequestOptions {
@@ -25,7 +24,7 @@ export class RpcService {
       entrypoint: string
       calldata: string[]
     },
-    options?: RpcRequestOptions
+    options?: RpcRequestOptions,
   ) {
     return wsClient.request(
       "callContract",
@@ -35,18 +34,22 @@ export class RpcService {
         calldata: params.calldata,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
-  async getBalance(address: string, options?: RpcRequestOptions) {
+  async getBalance(
+    address: string,
+    options?: RpcRequestOptions & { contractAddress?: string },
+  ) {
     return wsClient.request(
       "getBalance",
       {
         address,
+        contractAddress: options?.contractAddress,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
@@ -57,7 +60,7 @@ export class RpcService {
         address,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
@@ -68,14 +71,14 @@ export class RpcService {
         address,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
   async getBlock(
     blockNumber?: number | string,
     blockHash?: string,
-    options?: RpcRequestOptions
+    options?: RpcRequestOptions,
   ) {
     return wsClient.request(
       "getBlock",
@@ -84,21 +87,18 @@ export class RpcService {
         blockHash,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
-  async getTransaction(
-    transactionHash: string,
-    options?: RpcRequestOptions
-  ) {
+  async getTransaction(transactionHash: string, options?: RpcRequestOptions) {
     return wsClient.request(
       "getTransaction",
       {
         transactionHash,
         network: options?.network || this.getDefaultNetwork(),
       },
-      options?.chainId || this.getDefaultChainId()
+      options?.chainId || this.getDefaultChainId(),
     )
   }
 
@@ -118,4 +118,3 @@ export class RpcService {
 }
 
 export const rpcService = new RpcService()
-
