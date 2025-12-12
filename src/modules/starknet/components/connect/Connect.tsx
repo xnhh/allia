@@ -1,11 +1,11 @@
 import { useAccount, useConnect, useDisconnect } from "@starknet-react/core"
 import Image from "next/image"
 import { useEffect, useState } from "react"
-import { SectionLayout } from "../sections/SectionLayout"
-import { Button } from "../ui/Button"
+import { Button } from "../../../../components/ui/Button"
 import { ConnectorButton } from "./ConnectorButton"
 import { ConnectStarknetkitModal } from "./ConnectStarknetkitModal"
-import { DisconnectIcon } from "../icons/DisconnectIcon"
+import { DisconnectIcon } from "../../../../components/icons/DisconnectIcon"
+import { SectionLayout } from "../sections/SectionLayout"
 
 const Connect = () => {
   const { isConnected } = useAccount()

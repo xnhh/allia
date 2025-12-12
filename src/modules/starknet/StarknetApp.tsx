@@ -1,6 +1,6 @@
 "use client"
 
-import { StarknetDapp } from "@/components/StarknetDapp"
+import { StarknetDapp } from "@/modules/starknet/StarknetDapp"
 import { connectors } from "@/connectors"
 import { mainnet, sepolia } from "@starknet-react/chains"
 import { publicProvider, StarknetConfig } from "@starknet-react/core"

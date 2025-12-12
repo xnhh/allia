@@ -1,27 +1,37 @@
 "use client"
-import { SignMessage } from "@/components/sections/SignMessage"
-import { Transactions } from "@/components/sections/Transactions/Transactions"
-import { useAccount, useDisconnect } from "@starknet-react/core"
+import { useAccount, useConnect, useDisconnect } from "@starknet-react/core"
 import { Suspense, useEffect, useState } from "react"
 import { handleWebwalletLogoutEvent } from "starknetkit/webwallet"
-import { Connect } from "./connect/Connect"
-import { Header } from "./Header"
-import { GithubLogo } from "./icons/GithubLogo"
-import { AccountStatus } from "./sections/AccountStatus"
-import { DeclareContract } from "./sections/Declare/DeclareContract"
-import { AddToken } from "./sections/ERC20/AddToken"
-import { Network } from "./sections/Network/Network"
-import { SectionButton } from "./sections/SectionButton"
-import { SectionLayout } from "./sections/SectionLayout"
-import { SessionKeysSign } from "./sections/SessionKeys/SessionKeysSign"
-import { Section } from "./sections/types"
-import { UniversalSign } from "./sections/UniversalSign/UniversalSign"
-import { UniversalExecute } from "./sections/UniversalExecute/UniversalExecute"
+import { StarknetkitConnector, useStarknetkitConnectModal } from "starknetkit"
+import { Connect } from "./components/connect/Connect"
+import { Header } from "./components/Header"
+import { GithubLogo } from "../../components/icons/GithubLogo"
+import { WalletIcon } from "../../components/icons/WalletIcon"
+import { AccountStatus } from "./components/sections/AccountStatus"
+import { SignMessage } from "./components/sections/SignMessage"
+import { Transactions } from "./components/sections/Transactions/Transactions"
+import { DeclareContract } from "./components/sections/Declare/DeclareContract"
+import { AddToken } from "./components/sections/ERC20/AddToken"
+import { Network } from "./components/sections/Network/Network"
+import { SectionButton } from "./components/sections/SectionButton"
+import { SectionLayout } from "./components/sections/SectionLayout"
+import { SessionKeysSign } from "./components/sections/SessionKeys/SessionKeysSign"
+import { Section } from "./components/sections/types"
+import { UniversalSign } from "./components/sections/UniversalSign/UniversalSign"
+import { UniversalExecute } from "./components/sections/UniversalExecute/UniversalExecute"
+import { WBTCBalanceModal } from "./components/WBTCBalanceModal"
 
 const StarknetDappContent = () => {
   const [section, setSection] = useState<Section | undefined>(undefined)
   const { isConnected } = useAccount()
   const { disconnect } = useDisconnect()
+  const { connectAsync, connectors } = useConnect()
+  const [isWBTCModalOpen, setIsWBTCModalOpen] = useState(false)
+
+  const { starknetkitConnectModal } = useStarknetkitConnectModal({
+    connectors: connectors as StarknetkitConnector[],
+    modalTheme: "dark",
+  })
 
   // const searchParams = useSearchParams()
 
@@ -36,9 +46,32 @@ const StarknetDappContent = () => {
     handleWebwalletLogoutEvent(disconnect)
   }, [])
 
+  const handleWalletIconClick = async () => {
+    if (!isConnected) {
+      // Trigger wallet connection
+      const { connector } = await starknetkitConnectModal()
+      if (!connector) {
+        return
+      }
+      await connectAsync({ connector })
+    } else {
+      // Show WBTC balance modal
+      setIsWBTCModalOpen(true)
+    }
+  }
+
   return (
     <div className="flex w-full h-full column">
-      <Header />
+      <div className="relative">
+        <Header />
+        <button
+          onClick={handleWalletIconClick}
+          className="absolute top-5 left-5 md:top-[32px] md:left-[116px] z-50 p-2 rounded-lg bg-raisin-black border border-charcoal hover:bg-charcoal transition-colors cursor-pointer"
+          aria-label="Wallet"
+        >
+          <WalletIcon />
+        </button>
+      </div>
 
       <div className="flex p-5 md:py-[56px] md:px-[116px] bg-black">
         <div className="flex w-full lg:max-w-[1178px] lg:mx-auto md:gap-20 lg:gap-[130px]">
@@ -176,6 +209,11 @@ const StarknetDappContent = () => {
           Github
         </div>
       </a>
+
+      <WBTCBalanceModal
+        isOpen={isWBTCModalOpen}
+        onClose={() => setIsWBTCModalOpen(false)}
+      />
     </div>
   )
 }

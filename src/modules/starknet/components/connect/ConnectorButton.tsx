@@ -1,6 +1,6 @@
 import { Connector, useConnect } from "@starknet-react/core"
 import { FC, ReactNode } from "react"
-import { Button } from "../ui/Button"
+import { Button } from "../../../../components/ui/Button"
 
 const ConnectorButton: FC<{ connector: Connector; icon: ReactNode }> = ({
   connector,

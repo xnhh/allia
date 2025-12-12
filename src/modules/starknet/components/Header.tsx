@@ -1,21 +1,18 @@
 import { isMainnet, toHexChainid } from "@/helpers/chainId"
 import { formatTruncatedAddress } from "@/helpers/formatAddress"
-import { useAccount, useBalance, useStarkProfile } from "@starknet-react/core"
-import { AvatarIcon } from "./icons/AvatarIcon"
-import { LogoIcon } from "./icons/LogoIcon"
-import { WalletIcon } from "./icons/WalletIcon"
-import { ExternalIcon } from "./icons/ExternalIcon"
-import { HeaderConnectButton } from "@/components/HeaderConnectButton"
-import Image from "next/image"
+import { useAccount } from "@starknet-react/core"
+import { LogoIcon } from "../../../components/icons/LogoIcon"
+import { WalletIcon } from "../../../components/icons/WalletIcon"
+import { ExternalIcon } from "../../../components/icons/ExternalIcon"
+import { HeaderConnectButton } from "@/modules/starknet/components/HeaderConnectButton"
+import { useBalance } from "@/hooks/useBalance"
 
 const Header = () => {
   const { address, isConnected, chainId } = useAccount()
 
-  const { data: balance } = useBalance({
-    address: address,
-  })
+  const { data: balance } = useBalance(address)
 
-  const { data } = useStarkProfile({ address })
+  // const { data } = useStarkProfile({ address })
 
   const hexChainId = toHexChainid(chainId)
 
@@ -56,7 +53,7 @@ const Header = () => {
                     )
                   }
                 >
-                  {data?.profilePicture ? (
+                  {/* {data?.profilePicture ? (
                     <Image
                       alt="generic_profile"
                       width={20}
@@ -68,7 +65,7 @@ const Header = () => {
                     />
                   ) : (
                     <AvatarIcon />
-                  )}
+                  )} */}
                   {formatTruncatedAddress(address || "")}
                   <ExternalIcon />
                 </div>

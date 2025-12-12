@@ -1,6 +1,6 @@
 import { FC } from "react"
-import { Button } from "../ui/Button"
 import { Section } from "./types"
+import { Button } from "@/components/ui/Button"
 
 interface SectionButtonProps {
   disabled?: boolean

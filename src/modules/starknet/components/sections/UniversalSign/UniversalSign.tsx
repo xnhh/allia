@@ -1,63 +1,38 @@
-import { toHexChainid } from "@/helpers/chainId"
+import { ErrorText } from "@/components/ui/Error"
 import { useAccount, useSignTypedData } from "@starknet-react/core"
 import { useState } from "react"
-import { constants, stark } from "starknet"
-import { Button } from "../ui/Button"
-import { SectionLayout } from "./SectionLayout"
-import { SigningIcon } from "../icons/SigningIcon"
-import { ErrorText } from "../ui/Error"
+import { stark } from "starknet"
+import { SectionLayout } from "../SectionLayout"
+import { Button } from "@/components/ui/Button"
+import { SigningIcon } from "@/components/icons/SigningIcon"
 
-const SignMessage = () => {
-  const { account, address, chainId } = useAccount()
-  const [shortText, setShortText] = useState("")
+const UniversalSign = () => {
+  const { account, address } = useAccount()
+  const [typedData, setTypedData] = useState<object | undefined>(undefined)
+  const [displayTypedData, setDisplayTypedData] = useState<string | undefined>(
+    undefined,
+  )
   const [lastSig, setLastSig] = useState<string[]>([])
   const [lastSigError, setLastSigError] = useState("")
+  const [jsonFormatError, setJsonFormatError] = useState(false)
 
-  const hexChainId = toHexChainid(chainId)
-
-  const { signTypedDataAsync } = useSignTypedData({
-    params: {
-      domain: {
-        name: "Example DApp",
-        chainId: hexChainId || constants.StarknetChainId.SN_SEPOLIA,
-        version: "0.0.1",
-        // revision: "1", // Uncomment for SNIP-12 revision 1
-      },
-      types: {
-        StarkNetDomain: [
-          { name: "name", type: "felt" },
-          { name: "chainId", type: "felt" },
-          { name: "version", type: "felt" },
-        ],
-        // SNIP-12 revision 1 domain separator (for testing purposes)
-        // See https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-12.md#domain-separator
-        // StarknetDomain: [
-        //   { name: "name", type: "shortstring" },
-        //   { name: "version", type: "shortstring" },
-        //   { name: "chainId", type: "shortstring" },
-        //   { name: "revision", type: "shortstring" },
-        // ],
-        Message: [{ name: "message", type: "felt" }],
-      },
-      primaryType: "Message",
-      message: {
-        message: shortText,
-      },
-    },
-  })
+  const { signTypedDataAsync } = useSignTypedData(typedData || {})
 
   const handleSignSubmit = async () => {
     try {
-      setLastSigError("")
       if (!account) {
         throw new Error("Account not connected")
       }
 
+      if (jsonFormatError) {
+        throw new Error("JSON Format Error")
+      }
+
+      setJsonFormatError(false)
       const result = await signTypedDataAsync()
       setLastSig(stark.formatSignature(result))
-    } catch (e) {
-      console.error(e)
-      setLastSigError((e as Error).message)
+    } catch (error) {
+      setLastSigError((error as Error).message)
     }
   }
 
@@ -79,11 +54,39 @@ const SignMessage = () => {
           <textarea
             id="short-text"
             name="short-text"
-            placeholder="Message"
+            placeholder={`// Example message - please replace before executing
+{
+	"domain": {
+		"name": "Example DApp",
+		"chainId": "0x1",
+		"version": "0.0.1"
+	},
+	"types": {
+		"StarkNetDomain": [
+			{ "name": "name", "type": "felt" },
+			{ "name": "chainId", "type": "felt" },
+			{ "name": "version", "type": "felt" }
+		],
+		"Message": [{ "name": "message", "type": "felt" }]
+	},
+	"primaryType": "Message",
+	"message": {
+		"message": "1234"
+	}
+}`}
             className="w-full outline-none focus:border-white focus:text-white"
-            value={shortText}
-            style={{ height: "160px" }}
-            onChange={(e) => setShortText(e.target.value)}
+            value={displayTypedData}
+            style={{ minHeight: "350px" }}
+            onChange={(e) => {
+              setDisplayTypedData(e.target.value)
+              try {
+                setTypedData(JSON.parse(`{ "params" : ${e.target.value} }`))
+                setJsonFormatError(false)
+              } catch {
+                setJsonFormatError(true)
+                return
+              }
+            }}
           />
 
           <div className="flex justify-end">
@@ -100,7 +103,7 @@ const SignMessage = () => {
                 textAlign: "center",
                 width: "100%",
               }}
-              disabled={!shortText}
+              disabled={!displayTypedData}
               hideChevron
             >
               Submit
@@ -108,6 +111,7 @@ const SignMessage = () => {
           </div>
         </form>
       </div>
+      {lastSigError ? <ErrorText>Error: {lastSigError}</ErrorText> : null}
       <div className="flex column p-1 gap-3" style={{ flex: "1" }}>
         {lastSig && lastSig.length > 0 && (
           <>
@@ -199,9 +203,8 @@ const SignMessage = () => {
           </>
         )}
       </div>
-      {lastSigError ? <ErrorText>{lastSigError}</ErrorText> : null}
     </SectionLayout>
   )
 }
 
-export { SignMessage }
+export { UniversalSign }

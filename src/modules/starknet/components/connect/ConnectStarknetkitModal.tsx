@@ -1,6 +1,6 @@
 import { useConnect } from "@starknet-react/core"
 import { StarknetkitConnector, useStarknetkitConnectModal } from "starknetkit"
-import { Button } from "../ui/Button"
+import { Button } from "../../../../components/ui/Button"
 
 const ConnectStarknetkitModal = () => {
   const { connectAsync, connectors } = useConnect()

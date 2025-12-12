@@ -1,15 +1,15 @@
 import { toHexChainid } from "@/helpers/chainId"
 import {
   useAccount,
-  useBalance,
   useConnect,
-  useStarkName,
-  useStarkProfile,
 } from "@starknet-react/core"
 import { FC, useState } from "react"
 import { constants } from "starknet"
-import { CopyIcon } from "../icons/CopyIcon"
-import { Toast } from "../ui/Toast"
+import { useBalance } from "@/hooks/useBalance"
+import { useStarkName } from "@/hooks/useStarkName"
+import { useStarkProfile } from "@/hooks/useStarkProfile"
+import { CopyIcon } from "@/components/icons/CopyIcon"
+import { Toast } from "@/components/ui/Toast"
 
 interface BoxProps {
   title: string
@@ -49,16 +49,11 @@ const AccountStatus = () => {
   const { connector } = useConnect()
   const [showToast, setShowToast] = useState(false)
 
-  const { data: balance } = useBalance({
-    address: address,
-  })
+  const { data: balance } = useBalance(address)
 
-  const { data: starknetId } = useStarkName({
-    address,
-  })
+  const { data: starknetId } = useStarkName(address)
 
-  const { data: starkProfile } = useStarkProfile({
-    address,
+  const { data: starkProfile } = useStarkProfile(address, {
     useDefaultPfp: true,
     enabled: true,
   })
@@ -92,7 +87,7 @@ const AccountStatus = () => {
             : undefined
         }
       />
-      <Box title="ID" value={starknetId} />
+      <Box title="ID" value={starknetId ?? undefined} />
       <Box
         title="Avatar Url"
         value={starkProfile?.profilePicture}

@@ -1,5 +1,5 @@
+import { IconStatusIcon } from "@/components/icons/IconStatusIcon"
 import { FC, PropsWithChildren, ReactNode } from "react"
-import { IconStatusIcon } from "../icons/IconStatusIcon"
 
 interface SectionLayoutProps extends PropsWithChildren {
   sectionTitle: string
