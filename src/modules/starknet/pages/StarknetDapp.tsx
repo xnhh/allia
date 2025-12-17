@@ -3,23 +3,23 @@ import { useAccount, useConnect, useDisconnect } from "@starknet-react/core"
 import { Suspense, useEffect, useState } from "react"
 import { handleWebwalletLogoutEvent } from "starknetkit/webwallet"
 import { StarknetkitConnector, useStarknetkitConnectModal } from "starknetkit"
-import { Connect } from "./components/connect/Connect"
-import { Header } from "./components/Header"
-import { GithubLogo } from "../../components/icons/GithubLogo"
-import { WalletIcon } from "../../components/icons/WalletIcon"
-import { AccountStatus } from "./components/sections/AccountStatus"
-import { SignMessage } from "./components/sections/SignMessage"
-import { Transactions } from "./components/sections/Transactions/Transactions"
-import { DeclareContract } from "./components/sections/Declare/DeclareContract"
-import { AddToken } from "./components/sections/ERC20/AddToken"
-import { Network } from "./components/sections/Network/Network"
-import { SectionButton } from "./components/sections/SectionButton"
-import { SectionLayout } from "./components/sections/SectionLayout"
-import { SessionKeysSign } from "./components/sections/SessionKeys/SessionKeysSign"
-import { Section } from "./components/sections/types"
-import { UniversalSign } from "./components/sections/UniversalSign/UniversalSign"
-import { UniversalExecute } from "./components/sections/UniversalExecute/UniversalExecute"
-import { WBTCBalanceModal } from "./components/WBTCBalanceModal"
+import { Connect } from "../components/connect/Connect"
+import { Header } from "../components/Header"
+import { GithubLogo } from "../../../components/icons/GithubLogo"
+import { WalletIcon } from "../../../components/icons/WalletIcon"
+import { AccountStatus } from "../components/sections/AccountStatus"
+import { SignMessage } from "../components/sections/SignMessage"
+import { Transactions } from "../components/sections/Transactions/Transactions"
+import { DeclareContract } from "../components/sections/Declare/DeclareContract"
+import { AddToken } from "../components/sections/ERC20/AddToken"
+import { Network } from "../components/sections/Network/Network"
+import { SectionButton } from "../components/sections/SectionButton"
+import { SectionLayout } from "../components/sections/SectionLayout"
+import { SessionKeysSign } from "../components/sections/SessionKeys/SessionKeysSign"
+import { Section } from "../components/sections/types"
+import { UniversalSign } from "../components/sections/UniversalSign/UniversalSign"
+import { UniversalExecute } from "../components/sections/UniversalExecute/UniversalExecute"
+import { WBTCBalanceModal } from "../components/WBTCBalanceModal"
 
 const StarknetDappContent = () => {
   const [section, setSection] = useState<Section | undefined>(undefined)
@@ -44,7 +44,7 @@ const StarknetDappContent = () => {
 
   useEffect(() => {
     handleWebwalletLogoutEvent(disconnect)
-  }, [])
+  }, [disconnect])
 
   const handleWalletIconClick = async () => {
     if (!isConnected) {

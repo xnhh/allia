@@ -1,6 +1,5 @@
 "use client"
 
-import { StarknetDapp } from "@/modules/starknet/StarknetDapp"
 import { connectors } from "@/connectors"
 import { mainnet, sepolia } from "@starknet-react/chains"
 import {
@@ -11,8 +10,17 @@ import {
 import { ChainProvider } from "@/contexts/ChainContext"
 import { toHexChainid, isMainnet } from "@/helpers/chainId"
 import { ETHTokenAddress } from "@/constants"
+import { renderRoute } from "./StarknetRoute"
 
-function StarknetDappWithChainProvider() {
+interface StarknetAppProps {
+  subSection?: string
+}
+
+function StarknetDappWithChainProvider({
+  subSection,
+}: {
+  subSection?: string
+}) {
   const { chainId } = useAccount()
   const hexChainId = toHexChainid(chainId)
   const network = isMainnet(hexChainId) ? "mainnet" : "sepolia"
@@ -24,12 +32,12 @@ function StarknetDappWithChainProvider() {
       network={network}
       defaultContractAddress={ETHTokenAddress}
     >
-      <StarknetDapp />
+      {renderRoute(subSection)}
     </ChainProvider>
   )
 }
 
-export function StarknetApp() {
+export function StarknetApp({ subSection }: StarknetAppProps) {
   const chains = [mainnet, sepolia]
   const providers = publicProvider()
 
@@ -39,7 +47,7 @@ export function StarknetApp() {
       provider={providers}
       connectors={connectors}
     >
-      <StarknetDappWithChainProvider />
+      <StarknetDappWithChainProvider subSection={subSection} />
     </StarknetConfig>
   )
 }

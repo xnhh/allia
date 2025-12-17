@@ -1,4 +1,4 @@
-import { constants } from "starknet"
+import { constants, RpcProvider } from "starknet"
 
 // Token Contract Addresses
 export const ETHTokenAddress =
@@ -53,10 +53,10 @@ const STARKNET_CHAIN_ID =
 
 // Provider is no longer exported as we use WebSocket RPC service instead
 // If you need direct provider access for wallet operations, create it locally
-// export const provider = new RpcProvider({
-//   nodeUrl: NODE_URL,
-//   chainId: STARKNET_CHAIN_ID,
-// })
+export const provider = new RpcProvider({
+  nodeUrl: NODE_URL,
+  chainId: STARKNET_CHAIN_ID,
+})
 
 // Argent Services
 export const ARGENT_SESSION_SERVICE_BASE_URL =

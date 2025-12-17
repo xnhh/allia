@@ -7,7 +7,10 @@ import { StarknetApp } from "@/modules/starknet/StarknetApp"
 import { wsClient } from "@/services/websocket"
 
 export default function Home() {
-  const [selectedNav, setSelectedNav] = useState("starknet-app")
+  const [selectedNav, setSelectedNav] = useState("starknet")
+  const [selectedSubNav, setSelectedSubNav] = useState<string | undefined>(
+    "deployment",
+  )
 
   // Initialize WebSocket connection at page level
   useEffect(() => {
@@ -21,12 +24,21 @@ export default function Home() {
     }
   }, [])
 
+  const handleNavSelect = (id: string, subId?: string) => {
+    setSelectedNav(id)
+    setSelectedSubNav(subId)
+  }
+
   return (
     <div className="flex min-h-screen flex-row bg-black">
-      <SidebarNav selectedId={selectedNav} onSelect={setSelectedNav} />
+      <SidebarNav
+        selectedId={selectedNav}
+        selectedSubId={selectedSubNav}
+        onSelect={handleNavSelect}
+      />
 
       <main className="flex flex-1 flex-col">
-        <StarknetApp />
+        <StarknetApp subSection={selectedSubNav} />
       </main>
     </div>
   )
