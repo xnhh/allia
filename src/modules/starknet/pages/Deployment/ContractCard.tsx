@@ -1,12 +1,16 @@
 import { Button } from "@/components/ui/Button"
 import { Contract, contractsService } from "@/services/contracts"
-import { useAccount, useDeclareContract } from "@starknet-react/core"
+import { useAccount } from "@starknet-react/core"
 import { useState, useRef } from "react"
-import { hash, CallData } from "starknet"
 import { isMainnet, toHexChainid } from "@/helpers/chainId"
-
-// JSON 类型定义
-type JsonValue = unknown
+import { useDeclareContract } from "./hooks/useDeclareContract"
+import { useDeployContract } from "./hooks/useDeployContract"
+import {
+  extractContractNameFromFileName,
+  extractClassHash,
+  extractCompiledClassHash,
+  getStatusColor,
+} from "./utils/contractUtils"
 
 interface ContractCardProps {
   contract: Contract
@@ -15,157 +19,199 @@ interface ContractCardProps {
 }
 
 type CardMode = "view" | "edit"
+type JsonValue = unknown
 
 export function ContractCard({
   contract,
   onUpdate,
   onDelete,
 }: ContractCardProps) {
-  const { account, address, chainId } = useAccount()
-  const { declareAsync } = useDeclareContract({})
+  const { account, chainId } = useAccount()
+  const {
+    declare,
+    isLoading: isDeclaring,
+    error: declareError,
+  } = useDeclareContract()
+  const {
+    deploy,
+    isLoading: isDeploying,
+    error: deployError,
+  } = useDeployContract()
 
-  const [mode, setMode] = useState<CardMode>("view")
+  // 新创建的合约（名称为 "New Contract" 且没有 class_hash）默认进入编辑模式
+  const [mode, setMode] = useState<CardMode>(
+    contract.name === "New Contract" && !contract.class_hash ? "edit" : "view",
+  )
   const [name, setName] = useState(contract.name)
   const [description, setDescription] = useState(contract.description || "")
-  const [sierraFile, setSierraFile] = useState<File | null>(null)
-  const [casmFile, setCasmFile] = useState<File | null>(null)
-  const [sierraJson, setSierraJson] = useState<JsonValue>(contract.sierra_json)
-  const [casmJson, setCasmJson] = useState<JsonValue>(contract.casm_json)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [classFile, setClassFile] = useState<File | null>(null)
+  const [compiledClassFile, setCompiledClassFile] = useState<File | null>(null)
+  const [classJson, setClassJson] = useState<JsonValue>(
+    contract.contract_class_json,
+  )
+  const [compiledClassJson, setCompiledClassJson] = useState<JsonValue>(
+    contract.compiled_contract_class_json,
+  )
+  const [classHash, setClassHash] = useState(contract.class_hash || "")
+  const [compiledClassHash, setCompiledClassHash] = useState(
+    contract.compiled_class_hash || "",
+  )
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  const sierraInputRef = useRef<HTMLInputElement>(null)
-  const casmInputRef = useRef<HTMLInputElement>(null)
+  // 合并错误状态
+  const error = declareError || deployError || saveError
+  const isLoading = isDeclaring || isDeploying || isSaving
+
+  const classFileInputRef = useRef<HTMLInputElement>(null)
+  const compiledClassFileInputRef = useRef<HTMLInputElement>(null)
 
   const hexChainId = toHexChainid(chainId)
   const isMainnetNetwork = isMainnet(hexChainId)
 
-  const handleFileRead = (file: File, setJson: (json: JsonValue) => void) => {
+  const handleClassFileRead = (file: File) => {
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        const json = JSON.parse(reader.result as string) as JsonValue
-        setJson(json)
-      } catch {
-        setError("Invalid JSON file")
+        const content = reader.result as string
+        const json = JSON.parse(content) as JsonValue
+        setClassJson(json)
+
+        // 提取 class_hash
+        const extractedHash = extractClassHash(json)
+        if (extractedHash) {
+          setClassHash(extractedHash)
+        } else {
+          setSaveError("Could not extract class_hash from contract class JSON")
+        }
+      } catch (e) {
+        setSaveError("Failed to parse contract class JSON file")
+        console.error(e)
       }
     }
     reader.readAsText(file)
   }
 
-  const handleSierraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCompiledClassFileRead = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const content = reader.result as string
+        const json = JSON.parse(content) as JsonValue
+        setCompiledClassJson(json)
+
+        // 提取 compiled_class_hash
+        const extractedHash = extractCompiledClassHash(json)
+        if (extractedHash) {
+          setCompiledClassHash(extractedHash)
+        } else {
+          setSaveError(
+            "Could not extract compiled_class_hash from compiled contract class JSON",
+          )
+        }
+      } catch (e) {
+        setSaveError("Failed to parse compiled contract class JSON file")
+        console.error(e)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleClassFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setSierraFile(file)
-      handleFileRead(file, setSierraJson)
+      setClassFile(file)
+      // 从文件名自动提取合约名称
+      const extractedName = extractContractNameFromFileName(file.name)
+      setName(extractedName)
+      handleClassFileRead(file)
     }
   }
 
-  const handleCasmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCompiledClassFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0]
     if (file) {
-      setCasmFile(file)
-      handleFileRead(file, setCasmJson)
+      setCompiledClassFile(file)
+      // 从文件名自动提取合约名称（优先使用 compiled class 文件名）
+      const extractedName = extractContractNameFromFileName(file.name)
+      setName(extractedName)
+      handleCompiledClassFileRead(file)
     }
   }
 
   const handleSave = async () => {
     try {
-      setIsLoading(true)
-      setError(null)
+      setIsSaving(true)
+      setSaveError(null)
+
+      // 保存基本信息，状态保持为 draft（除非已经有 declare_tx_hash）
       await contractsService.update(contract.id, {
         name,
         description,
-        sierraJson,
-        casmJson,
+        contractClassJson: classJson || undefined,
+        compiledContractClassJson: compiledClassJson || undefined,
+        classHash: classHash || undefined,
+        compiledClassHash: compiledClassHash || undefined,
+        // 只有在已经有 declare_tx_hash 的情况下才设置为 declared
+        status: contract.declare_tx_hash ? "declared" : "draft",
       })
+
       setMode("view")
       onUpdate()
     } catch (e) {
-      setError((e as Error).message)
+      setSaveError((e as Error).message)
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
   }
 
   const handleDeclare = async () => {
-    if (!account || !sierraJson || !casmJson) {
-      setError("Please upload both Sierra and Casm files")
-      return
-    }
+    const contractClassToUse = classJson || contract.contract_class_json
+    const compiledClassToUse =
+      compiledClassJson || contract.compiled_contract_class_json
 
     try {
-      setIsLoading(true)
-      setError(null)
-
-      // Type assertions for Starknet contract classes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const casmClass = casmJson as any
-      const compiledClassHash = hash.computeCompiledClassHash(casmClass)
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sierraClass = sierraJson as any
-      const { class_hash, transaction_hash } = await declareAsync({
-        contract_class: sierraClass,
-        compiled_class_hash: compiledClassHash,
+      await declare({
+        contractId: contract.id,
+        contractClassJson: contractClassToUse,
+        compiledContractClassJson: compiledClassToUse,
+        onSuccess: ({
+          classHash: declaredClassHash,
+          compiledClassHash: declaredCompiledHash,
+        }) => {
+          // Update local state with declared hashes
+          setClassHash(declaredClassHash)
+          setCompiledClassHash(declaredCompiledHash)
+          onUpdate()
+        },
       })
-
-      // 更新数据库
-      await contractsService.update(contract.id, {
-        classHash: class_hash,
-        compiledClassHash: compiledClassHash,
-        status: "declared",
-        declareTxHash: transaction_hash,
-      })
-
-      onUpdate()
     } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setIsLoading(false)
+      // Error is handled by the hook
+      console.error("Declare failed:", e)
     }
   }
 
   const handleDeploy = async () => {
-    if (!account || !contract.class_hash) {
-      setError("Contract must be declared first")
+    const hashToUse = classHash || contract.class_hash
+    if (!hashToUse) {
       return
     }
 
     try {
-      setIsLoading(true)
-      setError(null)
-
-      // 生成随机 salt
-      const salt = "0x" + Math.random().toString(16).slice(2)
-
-      // 部署合约（使用空的构造函数参数，可以根据需要修改）
-      const deployResult = await account.deployContract({
-        classHash: contract.class_hash,
-        constructorCalldata: CallData.compile([]),
-        salt,
-      })
-
-      // 创建实例记录
-      await contractsService.createInstance({
+      await deploy({
         contractId: contract.id,
-        instanceAddress: deployResult.contract_address,
-        deployTxHash: deployResult.transaction_hash,
-        deployerAddress: address,
-        salt,
-        status: "deployed",
+        classHash: hashToUse,
+        compiledClassHash: compiledClassHash || contract.compiled_class_hash,
+        constructorCalldata: [],
+        onSuccess: () => {
+          onUpdate()
+        },
       })
-
-      // 更新合约状态
-      await contractsService.update(contract.id, {
-        status: "deployed",
-      })
-
-      onUpdate()
     } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setIsLoading(false)
+      // Error is handled by the hook
+      console.error("Deploy failed:", e)
     }
   }
 
@@ -177,20 +223,9 @@ export function ContractCard({
     window.open(`${baseUrl}/${path}/${hash}`, "_blank")
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "draft":
-        return "text-yellow-400 bg-yellow-400/10"
-      case "declared":
-        return "text-blue-400 bg-blue-400/10"
-      case "deployed":
-        return "text-green-400 bg-green-400/10"
-      case "failed":
-        return "text-red-400 bg-red-400/10"
-      default:
-        return "text-gray-400 bg-gray-400/10"
-    }
-  }
+  const currentClassHash = classHash || contract.class_hash
+  const currentCompiledClassHash =
+    compiledClassHash || contract.compiled_class_hash
 
   return (
     <div className="border border-neutral-700 rounded-lg p-4 bg-neutral-900/50 hover:border-neutral-600 transition-colors">
@@ -198,13 +233,20 @@ export function ContractCard({
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           {mode === "edit" ? (
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-600 rounded px-3 py-1 text-white text-lg font-semibold"
-              placeholder="Contract name"
-            />
+            <div>
+              <input
+                type="text"
+                value={name}
+                readOnly
+                className="w-full bg-neutral-800 border border-neutral-600 rounded px-3 py-1 text-white text-lg font-semibold cursor-default"
+                placeholder="Contract name (auto-extracted from file)"
+                title="Contract name is automatically extracted from the uploaded file name"
+              />
+              <p className="text-xs text-neutral-500 mt-1">
+                Name extracted from file:{" "}
+                {classFile?.name || compiledClassFile?.name || "No file"}
+              </p>
+            </div>
           ) : (
             <h3 className="text-lg font-semibold text-white">
               {contract.name}
@@ -260,64 +302,102 @@ export function ContractCard({
         <div className="space-y-3 mb-4">
           <div>
             <label className="block text-sm text-neutral-400 mb-1">
-              Sierra File (.sierra.json)
+              Contract Class File (.sierra.json)
             </label>
             <div className="flex items-center gap-2">
               <input
-                ref={sierraInputRef}
+                ref={classFileInputRef}
                 type="file"
                 accept=".json"
-                onChange={handleSierraChange}
+                onChange={handleClassFileChange}
                 className="hidden"
               />
               <button
-                onClick={() => sierraInputRef.current?.click()}
+                onClick={() => classFileInputRef.current?.click()}
                 className="px-3 py-1.5 bg-neutral-800 border border-neutral-600 rounded text-sm text-neutral-300 hover:bg-neutral-700"
               >
-                {sierraFile?.name ||
-                  (sierraJson ? "File uploaded ✓" : "Choose file")}
+                {classFile?.name ||
+                  (classJson ? "File uploaded ✓" : "Choose file")}
               </button>
+              {classHash && (
+                <span
+                  className="text-xs text-green-400 font-mono truncate max-w-[200px]"
+                  title={classHash}
+                >
+                  Hash: {classHash.slice(0, 10)}...{classHash.slice(-6)}
+                </span>
+              )}
             </div>
+            <p className="text-xs text-neutral-500 mt-1">
+              Upload the contract class JSON file (Sierra format)
+            </p>
           </div>
           <div>
             <label className="block text-sm text-neutral-400 mb-1">
-              Casm File (.casm.json)
+              Compiled Contract Class File (.casm.json)
             </label>
             <div className="flex items-center gap-2">
               <input
-                ref={casmInputRef}
+                ref={compiledClassFileInputRef}
                 type="file"
                 accept=".json"
-                onChange={handleCasmChange}
+                onChange={handleCompiledClassFileChange}
                 className="hidden"
               />
               <button
-                onClick={() => casmInputRef.current?.click()}
+                onClick={() => compiledClassFileInputRef.current?.click()}
                 className="px-3 py-1.5 bg-neutral-800 border border-neutral-600 rounded text-sm text-neutral-300 hover:bg-neutral-700"
               >
-                {casmFile?.name ||
-                  (casmJson ? "File uploaded ✓" : "Choose file")}
+                {compiledClassFile?.name ||
+                  (compiledClassJson ? "File uploaded ✓" : "Choose file")}
               </button>
+              {compiledClassHash && (
+                <span
+                  className="text-xs text-green-400 font-mono truncate max-w-[200px]"
+                  title={compiledClassHash}
+                >
+                  Hash: {compiledClassHash.slice(0, 10)}...
+                  {compiledClassHash.slice(-6)}
+                </span>
+              )}
             </div>
+            <p className="text-xs text-neutral-500 mt-1">
+              Upload the compiled contract class JSON file (CASM format)
+            </p>
           </div>
         </div>
       )}
 
-      {/* Contract Info */}
-      {contract.class_hash && (
-        <div className="mb-4 p-3 bg-neutral-800/50 rounded">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-neutral-500">Class Hash</span>
-            <button
-              onClick={() => openOnVoyager("class", contract.class_hash!)}
-              className="text-lavander-sky hover:underline text-xs"
-            >
-              View on Voyager →
-            </button>
+      {/* Contract Info (view mode) */}
+      {mode === "view" && currentClassHash && (
+        <div className="mb-4 p-3 bg-neutral-800/50 rounded space-y-3">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-neutral-500">Class Hash</span>
+              {/* 只有在 declared 或 deployed 状态下才显示 Voyager 链接 */}
+              {contract.status !== "draft" && (
+                <button
+                  onClick={() => openOnVoyager("class", currentClassHash)}
+                  className="text-lavander-sky hover:underline text-xs"
+                >
+                  View on Voyager →
+                </button>
+              )}
+            </div>
+            <p className="text-neutral-300 text-xs font-mono break-all">
+              {currentClassHash}
+            </p>
           </div>
-          <p className="text-neutral-300 text-xs font-mono break-all">
-            {contract.class_hash}
-          </p>
+          {currentCompiledClassHash && (
+            <div>
+              <span className="text-xs text-neutral-500">
+                Compiled Class Hash
+              </span>
+              <p className="text-neutral-300 text-xs font-mono break-all mt-1">
+                {currentCompiledClassHash}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -375,18 +455,21 @@ export function ContractCard({
             >
               Edit
             </Button>
-            {contract.status === "draft" && sierraJson && casmJson && (
-              <Button
-                onClick={handleDeclare}
-                disabled={isLoading || !account}
-                className="flex-1 text-sm py-2"
-                hideChevron
-              >
-                {isLoading ? "Declaring..." : "Declare"}
-              </Button>
-            )}
-            {(contract.status === "declared" ||
-              contract.status === "deployed") && (
+            {/* Draft 状态下显示 Declare 按钮 */}
+            {contract.status === "draft" &&
+              (classJson || contract.contract_class_json) &&
+              (compiledClassJson || contract.compiled_contract_class_json) && (
+                <Button
+                  onClick={handleDeclare}
+                  disabled={isLoading || !account}
+                  className="flex-1 text-sm py-2"
+                  hideChevron
+                >
+                  {isLoading ? "Declaring..." : "Declare"}
+                </Button>
+              )}
+            {/* Declared/Deployed 状态下显示 Deploy 按钮 */}
+            {contract.status !== "draft" && currentClassHash && (
               <Button
                 onClick={handleDeploy}
                 disabled={isLoading || !account}
@@ -412,7 +495,13 @@ export function ContractCard({
                 setMode("view")
                 setName(contract.name)
                 setDescription(contract.description || "")
-                setError(null)
+                setClassJson(contract.contract_class_json)
+                setCompiledClassJson(contract.compiled_contract_class_json)
+                setClassHash(contract.class_hash || "")
+                setCompiledClassHash(contract.compiled_class_hash || "")
+                setClassFile(null)
+                setCompiledClassFile(null)
+                setSaveError(null)
               }}
               className="flex-1 text-sm py-2 bg-neutral-700 hover:bg-neutral-600"
               hideChevron

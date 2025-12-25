@@ -13,8 +13,6 @@ export function Deployment() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [newContractName, setNewContractName] = useState("")
-  const [showCreateForm, setShowCreateForm] = useState(false)
 
   const hexChainId = toHexChainid(chainId)
   const network = isMainnet(hexChainId) ? "mainnet" : "sepolia"
@@ -39,21 +37,15 @@ export function Deployment() {
   }, [address, loadContracts])
 
   const handleCreateContract = async () => {
-    if (!newContractName.trim()) {
-      setError("Contract name is required")
-      return
-    }
-
     try {
       setIsCreating(true)
       setError(null)
+      // 使用临时名字，上传文件后会自动更新
       await contractsService.create({
-        name: newContractName.trim(),
+        name: "New Contract",
         network,
         ownerAddress: address,
       })
-      setNewContractName("")
-      setShowCreateForm(false)
       await loadContracts()
     } catch (e) {
       setError((e as Error).message)
@@ -112,57 +104,14 @@ export function Deployment() {
           </p>
         </div>
         <Button
-          onClick={() => setShowCreateForm(true)}
+          onClick={handleCreateContract}
+          disabled={isCreating}
           hideChevron
           className="px-4 py-2"
         >
-          + New Contract
+          {isCreating ? "Creating..." : "+ New Contract"}
         </Button>
       </div>
-
-      {/* Create Form */}
-      {showCreateForm && (
-        <div className="mb-6 p-4 border border-neutral-700 rounded-lg bg-neutral-900/50">
-          <h3 className="text-lg font-semibold text-white mb-4">
-            Create New Contract
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-neutral-400 mb-1">
-                Contract Name *
-              </label>
-              <input
-                type="text"
-                value={newContractName}
-                onChange={(e) => setNewContractName(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-600 rounded px-3 py-2 text-white"
-                placeholder="e.g., MyToken"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCreateContract}
-                disabled={isCreating || !newContractName.trim()}
-                hideChevron
-                className="flex-1"
-              >
-                {isCreating ? "Creating..." : "Create"}
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowCreateForm(false)
-                  setNewContractName("")
-                }}
-                hideChevron
-                className="flex-1 bg-neutral-700 hover:bg-neutral-600"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Error Message */}
       {error && (
@@ -196,8 +145,12 @@ export function Deployment() {
           <p className="text-sm text-neutral-500 mt-1 mb-4">
             Create your first contract to get started
           </p>
-          <Button onClick={() => setShowCreateForm(true)} hideChevron>
-            + Create Contract
+          <Button
+            onClick={handleCreateContract}
+            disabled={isCreating}
+            hideChevron
+          >
+            {isCreating ? "Creating..." : "+ Create Contract"}
           </Button>
         </div>
       ) : (

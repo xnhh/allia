@@ -15,6 +15,8 @@ export interface Contract {
   network: string
   sierra_json?: JsonValue
   casm_json?: JsonValue
+  contract_class_json?: JsonValue
+  compiled_contract_class_json?: JsonValue
   class_hash?: string
   compiled_class_hash?: string
   status: ContractStatus
@@ -81,6 +83,8 @@ export const contractsService = {
       description?: string
       sierraJson?: JsonValue
       casmJson?: JsonValue
+      contractClassJson?: JsonValue
+      compiledContractClassJson?: JsonValue
       classHash?: string
       compiledClassHash?: string
       status?: ContractStatus
