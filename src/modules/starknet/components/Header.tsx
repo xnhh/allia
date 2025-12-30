@@ -1,8 +1,9 @@
 import { formatTruncatedAddress } from "@/helpers/formatAddress"
-import { useAccount } from "@starknet-react/core"
+import { useAccount, useDisconnect } from "@starknet-react/core"
 import { LogoIcon } from "../../../components/icons/LogoIcon"
 import { WalletIcon } from "../../../components/icons/WalletIcon"
 import { ExternalIcon } from "../../../components/icons/ExternalIcon"
+import { DisconnectIcon } from "../../../components/icons/DisconnectIcon"
 import { HeaderConnectButton } from "@/modules/starknet/components/HeaderConnectButton"
 import { useBalance } from "@/hooks/useBalance"
 import { useChainContext } from "@/contexts/ChainContext"
@@ -10,6 +11,7 @@ import { STRKTokenAddress } from "@/constants"
 
 const Header = () => {
   const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
   const { network } = useChainContext()
 
   const { data: balance } = useBalance(address, {
@@ -71,6 +73,14 @@ const Header = () => {
                   {formatTruncatedAddress(address || "")}
                   <ExternalIcon />
                 </div>
+                <div className="border-solid border-l-[1px] border-charcoal -my-1 mx-0" />
+                <button
+                  className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => disconnect()}
+                  title="Disconnect wallet"
+                >
+                  <DisconnectIcon />
+                </button>
               </div>
             )}
             {!isConnected && <HeaderConnectButton />}
