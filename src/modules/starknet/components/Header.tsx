@@ -7,7 +7,7 @@ import { DisconnectIcon } from "../../../components/icons/DisconnectIcon"
 import { HeaderConnectButton } from "@/modules/starknet/components/HeaderConnectButton"
 import { useBalance } from "@/hooks/useBalance"
 import { useChainContext } from "@/contexts/ChainContext"
-import { STRKTokenAddress } from "@/constants"
+import { ETHTokenAddress } from "@/constants"
 
 const Header = () => {
   const { address, isConnected } = useAccount()
@@ -15,7 +15,7 @@ const Header = () => {
   const { network } = useChainContext()
 
   const { data: balance } = useBalance(address, {
-    contractAddress: STRKTokenAddress,
+    contractAddress: ETHTokenAddress,
   })
 
   // const { data } = useStarkProfile({ address })
@@ -41,9 +41,9 @@ const Header = () => {
                   <WalletIcon />
                   {balance
                     ? balance?.formatted.length > 7
-                      ? `${balance.formatted.slice(0, 7)} STRK`
-                      : `${balance?.formatted} STRK`
-                    : "0 STRK"}
+                      ? `${balance.formatted.slice(0, 7)} ETH`
+                      : `${balance?.formatted} ETH`
+                    : "0 ETH"}
                 </div>
                 <div className="border-solid border-l-[1px] border-charcoal -my-1 mx-0  hidden md:flex" />
                 <div
