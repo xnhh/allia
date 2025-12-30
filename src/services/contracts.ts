@@ -20,7 +20,6 @@ export interface Contract {
   class_hash?: string
   compiled_class_hash?: string
   status: ContractStatus
-  owner_address?: string
   declare_tx_hash?: string
   created_at: string
   updated_at: string
@@ -44,9 +43,8 @@ export interface ContractInstance {
 // 合约服务
 export const contractsService = {
   // 获取所有合约
-  async list(ownerAddress?: string, network?: string): Promise<Contract[]> {
+  async list(network?: string): Promise<Contract[]> {
     const result = await wsClient.request<Contract[]>("contracts.list", {
-      ownerAddress,
       network,
     })
     return result || []
@@ -69,7 +67,6 @@ export const contractsService = {
     network?: string
     sierraJson?: JsonValue
     casmJson?: JsonValue
-    ownerAddress?: string
   }): Promise<Contract> {
     const result = await wsClient.request<Contract>("contracts.create", params)
     return result

@@ -5,48 +5,12 @@ import {
 } from "@starknet-react/core"
 import { hash } from "starknet"
 import { contractsService } from "@/services/contracts"
+import {
+  convertToCompiledSierraCasm,
+  convertToContractClass,
+} from "../utils/converter"
 
 type JsonValue = unknown
-
-/**
- * CONTRACT_CLASS 类型定义（来自 @starknet-io/types-js）
- * 上传的 JSON 文件应该包含以下字段：
- * - sierra_program: string[] (FELT 数组)
- * - contract_class_version: string (例如 "0.1.0")
- * - entry_points_by_type: {
- *     CONSTRUCTOR: Array<{ selector: string, function_idx: number }>
- *     EXTERNAL: Array<{ selector: string, function_idx: number }>
- *     L1_HANDLER: Array<{ selector: string, function_idx: number }>
- *   }
- * - abi: string (JSON 字符串)
- */
-interface ContractClass {
-  sierra_program: string[]
-  contract_class_version: string
-  entry_points_by_type: {
-    CONSTRUCTOR: Array<{ selector: string; function_idx: number }>
-    EXTERNAL: Array<{ selector: string; function_idx: number }>
-    L1_HANDLER: Array<{ selector: string; function_idx: number }>
-  }
-  abi: string
-}
-
-/**
- * 验证 JSON 是否包含 CONTRACT_CLASS 必需的字段
- */
-function isValidContractClass(json: JsonValue): json is ContractClass {
-  if (!json || typeof json !== "object") {
-    return false
-  }
-
-  const obj = json as Record<string, unknown>
-
-  return (
-    Array.isArray(obj.sierra_program) &&
-    obj.entry_points_by_type !== undefined &&
-    obj.entry_points_by_type !== null
-  )
-}
 
 interface UseDeclareContractOptions {
   contractId: string
@@ -79,52 +43,24 @@ export function useDeclareContract() {
       return
     }
 
-    // 验证 contract class JSON 格式
-    if (!isValidContractClass(contractClassJson)) {
-      setError(
-        "Invalid contract class JSON. Required fields: sierra_program, contract_class_version, entry_points_by_type, abi",
-      )
-      return
-    }
-
     try {
       setIsLoading(true)
       setError(null)
 
-      // Type assertion: JSON data from files needs to be cast to expected types
-      // Using unknown as intermediate type for safe type assertion
-      const compiledClassHashValue = hash.computeCompiledClassHash(
-        compiledContractClassJson as unknown as Parameters<
-          typeof hash.computeCompiledClassHash
-        >[0],
+      // Convert JSON to ContractClass using converter (validates and converts)
+      const contractClass = convertToContractClass(contractClassJson)
+
+      // Convert JSON to CompiledSierraCasm using converter (validates and converts)
+      const compiledSierraCasm = convertToCompiledSierraCasm(
+        compiledContractClassJson,
       )
-
-      // Compute class_hash from contract class JSON
-      const classHashValue = hash.computeContractClassHash(
-        contractClassJson as unknown as Parameters<
-          typeof hash.computeContractClassHash
-        >[0],
-      )
-
-      // Extract the contract_class type from declareAsync parameters
-      type DeclareParams = Parameters<typeof declareAsync>[0]
-      type ContractClassParam = DeclareParams extends {
-        contract_class: infer T
-      }
-        ? T
-        : never
-
-      console.log({
-        contract_class: contractClassJson as unknown as ContractClassParam,
-        compiled_class_hash: compiledClassHashValue,
-        class_hash: classHashValue,
-      })
+      const compiledClassHashValue =
+        hash.computeCompiledClassHash(compiledSierraCasm)
 
       const { class_hash, transaction_hash } = await declareAsync({
-        contract_class: contractClassJson as unknown as ContractClassParam,
+        contract_class: contractClass,
         compiled_class_hash: compiledClassHashValue,
-        class_hash: classHashValue,
-      } as DeclareParams)
+      })
 
       // Update contract with declared hash and status
       await contractsService.update(contractId, {

@@ -21,7 +21,7 @@ export function Deployment() {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await contractsService.list(address, network)
+      const data = await contractsService.list(network)
       setContracts(data)
     } catch (e) {
       setError((e as Error).message)
@@ -44,7 +44,6 @@ export function Deployment() {
       await contractsService.create({
         name: "New Contract",
         network,
-        ownerAddress: address,
       })
       await loadContracts()
     } catch (e) {
