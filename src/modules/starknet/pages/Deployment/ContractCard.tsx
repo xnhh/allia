@@ -79,6 +79,7 @@ export function ContractCard({
 
         // 提取 class_hash
         const extractedHash = extractClassHash(json)
+
         if (extractedHash) {
           setClassHash(extractedHash)
         } else {

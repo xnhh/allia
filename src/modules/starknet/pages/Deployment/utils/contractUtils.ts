@@ -36,17 +36,7 @@ export function extractContractNameFromFileName(fileName: string): string {
 export function extractClassHash(json: JsonValue): string | null {
   if (!json || typeof json !== "object") return null
 
-  const obj = json as Record<string, unknown>
-  // 尝试从不同可能的字段中提取 hash
-  const hashValue = obj.class_hash || obj.classHash || obj.hash
-
-  if (typeof hashValue === "string" && hashValue.startsWith("0x")) {
-    return hashValue
-  }
-
-  // 如果没有直接的 hash，尝试计算（对于 Sierra 格式）
   try {
-    // 类型断言：假设 JSON 符合 ContractClass 格式
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return hash.computeContractClassHash(json as any)
   } catch (e) {
